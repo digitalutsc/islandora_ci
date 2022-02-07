@@ -16,7 +16,6 @@ fi
 sudo ln -s /opt/utils/vendor/bin/phpcs /usr/bin/phpcs
 sudo ln -s /opt/utils/vendor/bin/phpcpd /usr/bin/phpcpd
 phpenv rehash
-phpcs --config-set installed_paths /opt/utils/vendor/drupal/coder/coder_sniffer
 
 echo "Composer install drupal site"
 if [ -z "$DRUPAL_VERSION" ]; then
