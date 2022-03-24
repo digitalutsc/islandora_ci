@@ -49,23 +49,3 @@ drush runserver 127.0.0.1:8282 &
 until curl -s 127.0.0.1:8282; do true; done > /dev/null
 echo "Enable simpletest module"
 drush --uri=127.0.0.1:8282 en -y simpletest
-
-# Install pdfjs
-cd /opt/drupal
-if [ -z "$COMPOSER_PATH" ]; then
-  composer require "zaporylie/composer-drupal-optimizations:^1.0" "drupal/pdf:1.x-dev"
-else
-  php -dmemory_limit=-1 $COMPOSER_PATH require "zaporylie/composer-drupal-optimizations:^1.0" "drupal/pdf:1.x-dev"
-fi
-
-cd web
-mkdir libraries
-cd libraries
-wget "https://github.com/mozilla/pdf.js/releases/download/v2.0.943/pdfjs-2.0.943-dist.zip"
-mkdir pdf.js
-unzip pdfjs-2.0.943-dist.zip -d pdf.js
-rm pdfjs-2.0.943-dist.zip
-
-cd ..
-drush -y en pdf
-
