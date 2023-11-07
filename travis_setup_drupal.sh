@@ -33,7 +33,7 @@ fi
 
 composer require "drupal/core-dev:$DRUPAL_VERSION"
 composer require phpspec/prophecy-phpunit:^2
-composer require drush/drush
+composer require drush/drush:12.*
 echo "Setup Drush"
 sudo ln -s /opt/drupal/vendor/bin/drush /usr/bin/drush
 phpenv rehash
