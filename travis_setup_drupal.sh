@@ -1,16 +1,15 @@
 #!/bin/bash
 echo "Setup database for Drupal"
-mysql -u root -e 'create database drupal;'
-mysql -u root -e "GRANT ALL PRIVILEGES ON drupal.* To 'drupal'@'127.0.0.1' IDENTIFIED BY 'drupal';"
+mysql -h 127.0.0.1 -P 3306 -u root -e "CREATE USER 'drupal'@'%' IDENTIFIED BY 'drupal'; GRANT ALL PRIVILEGES ON drupal.* To 'drupal'@'%'; FLUSH ALL PRIVILEGES;"
 
 echo "Install utilities needed for testing"
 mkdir /opt/utils
 cd /opt/utils
 if [ -z "$COMPOSER_PATH" ]; then
-  composer require drupal/coder ^8.3.11
+  composer require drupal/coder 8.3.13 # 8.3.14 breaks, see https://www.drupal.org/project/coder/issues/3262291 
   composer require sebastian/phpcpd ^6
 else
-  php -dmemory_limit=-1 $COMPOSER_PATH require drupal/coder ^8.3.11
+  php -dmemory_limit=-1 $COMPOSER_PATH require drupal/coder 8.3.13 # 8.3.14 breaks, see https://www.drupal.org/project/coder/issues/3262291 
   php -dmemory_limit=-1 $COMPOSER_PATH require sebastian/phpcpd ^6
 fi
 sudo ln -s /opt/utils/vendor/bin/phpcs /usr/bin/phpcs
@@ -20,7 +19,9 @@ phpcs --config-set installed_paths /opt/utils/vendor/drupal/coder/coder_sniffer
 
 echo "Composer install drupal site"
 if [ -z "$DRUPAL_VERSION" ]; then
-    DRUPAL_VERSION=8.9.11
+   # Just fail if we don't set a version
+   echo "DRUPAL_VERSION is not set, exiting"
+   exit 1
 fi
 cd /opt
 composer create-project drupal/recommended-project:$DRUPAL_VERSION drupal
@@ -32,15 +33,28 @@ else
 fi
 
 composer require "drupal/core-dev:$DRUPAL_VERSION"
-composer require phpspec/prophecy-phpunit:^2
-composer require drush/drush:12.*
+DRUPAL_MAJOR=$(echo "$DRUPAL_VERSION" | cut -d. -f1)
+if [ $DRUPAL_MAJOR -ge 9 ]; then
+  # XXX: 9.4.x-dev installs phpunit 8... but then we expect to have to install 
+  # the phpspec/prophecy-phpunit:^2 thing, which only works with phpunit 9.
+  composer require -W phpunit/phpunit:^9
+  composer require phpspec/prophecy-phpunit:^2 drush/drush
+elif [ $DRUPAL_MAJOR -eq 8 ]; then
+  composer require drush/drush:^10
+elif [ $DRUPAL_MAJOR -eq 7 ]; then
+  composer require drush/drush:^8
+else
+  echo "Unmapped major version of Drupal: $DRUPAL_MAJOR"
+  exit 1
+fi
+
 echo "Setup Drush"
 sudo ln -s /opt/drupal/vendor/bin/drush /usr/bin/drush
 phpenv rehash
 
 echo "Drush setup drupal site"
 cd web
-drush si --db-url=mysql://drupal:drupal@127.0.0.1/drupal --yes
+drush si --db-url=mysql://drupal:drupal@127.0.0.1:3306/drupal --yes
 drush runserver 127.0.0.1:8282 &
 until curl -s 127.0.0.1:8282; do true; done > /dev/null
 echo "Enable simpletest module"
@@ -64,9 +78,3 @@ rm pdfjs-2.0.943-dist.zip
 
 cd ..
 drush -y en pdf
-
-echo "Setup ActiveMQ"
-cd /opt
-wget "http://archive.apache.org/dist/activemq/5.14.3/apache-activemq-5.14.3-bin.tar.gz"
-tar -xzf apache-activemq-5.14.3-bin.tar.gz
-apache-activemq-5.14.3/bin/activemq start
