@@ -36,10 +36,7 @@ composer require -W "drupal/core-dev:$DRUPAL_VERSION"
 DRUPAL_MAJOR=$(echo "$DRUPAL_VERSION" | cut -d. -f1)
 if [ $DRUPAL_MAJOR -ge 9 ]; then
   composer require -W drush/drush
-  # XXX: 9.4.x-dev installs phpunit 8... but then we expect to have to install 
-  # the phpspec/prophecy-phpunit:^2 thing, which only works with phpunit 9.
-  composer require -W phpunit/phpunit:^9
-  composer require phpspec/prophecy-phpunit:^2 drush/drush
+  #composer require phpspec/prophecy-phpunit:^2
 elif [ $DRUPAL_MAJOR -eq 8 ]; then
   composer require drush/drush:^10
 elif [ $DRUPAL_MAJOR -eq 7 ]; then
@@ -64,7 +61,7 @@ drush --uri=127.0.0.1:8282 en -y simpletest
 # Install pdfjs
 cd /opt/drupal
 if [ -z "$COMPOSER_PATH" ]; then
-  composer require "zaporylie/composer-drupal-optimizations:^1.0" "drupal/pdf:1.x-dev"
+  composer require "drupal/pdf:1.x-dev"
 else
   php -dmemory_limit=-1 $COMPOSER_PATH require "zaporylie/composer-drupal-optimizations:^1.0" "drupal/pdf:1.x-dev"
 fi
